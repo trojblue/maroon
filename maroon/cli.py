@@ -1,25 +1,41 @@
 import os
 import click
-from .format import format_music_folder
+from .rename import rename_music_folder
 from .transform import split_wav_from_cue
 
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+
+def process_directory(directory: str) -> None:
+    """Process a directory recursively, formatting music folders and splitting .wav files from .cue sheets"""
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".cue"):
+                cue_path = os.path.join(root, file)
+                split_wav_from_cue(cue_path)
+
+        for dir in dirs:
+            if "DISC" in dir:
+                rename_music_folder(os.path.join(root, dir))
+
+
+@cli.command()
 @click.argument("dir_name")
-def cli(dir_name):
+def format(dir_name: str):
     # Tidy implementation
     print(f"Tidying directory: {dir_name}")
-    format_music_folder(dir_name)
+    process_directory(dir_name)
 
-    # for each subdir with name DISCx: run split_wav_from_cue
-    for subdir in os.listdir(dir_name):
-        if "DISC" in subdir:
-            # find cue file(s) in subdir
-            for file in os.listdir(os.path.join(dir_name, subdir)):
-                if file.endswith(".cue"):
-                    cue_path = os.path.join(dir_name, subdir, file)
-                    split_wav_from_cue(cue_path)
-                    break
+
+@cli.command()
+@click.argument("dir_name")
+def edit(dir_name):
+    # Placeholder for your new function
+    print(f"Editing directory: {dir_name}")
+    # Call your new function here
 
 
 if __name__ == "__main__":

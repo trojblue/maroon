@@ -25,5 +25,5 @@ pip install dist/<build_version>.whl
 ## Usage
 maroon rearranges your subfolders in an album dir into roon-friendly `DISC*/`format, and splits `.cue` files into individual`.flac` files, containing metadata: 
 ```bash
-maroon <album dir>
+maroon format <album dir>
 ```

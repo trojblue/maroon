@@ -23,11 +23,11 @@ def _rename_folders(directory:str):
     print(f"Renamed {len(folders_to_rename)} folders.")
 
 
-def format_music_folder(dir_name):
+def rename_music_folder(dir_name):
     print(f"Tidying directory: {dir_name}")
     _rename_folders(dir_name)
 
 
 if __name__ == "__main__":
     folder = input("Enter folder name: ")
-    format_music_folder(folder)
+    rename_music_folder(folder)
