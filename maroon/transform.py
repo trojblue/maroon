@@ -18,10 +18,10 @@ class Meta:
 
     def get_album_name_and_genre(self):
         default_album_name = self.get_default_album_name()
-        album_name = input(f"Enter the album name (default: {default_album_name}): ")
+        album_name = input(f"Name of the album (default: {default_album_name}): ")
         album_name = album_name.strip() if album_name else default_album_name
 
-        genre = input("Enter the genre of the album: ")
+        genre = input("Genre of the album (split by ; sign):")
 
         return album_name, genre
 
@@ -29,9 +29,17 @@ class Meta:
         parent_folder = os.path.dirname(self.cue_path)
         match = re.search("DISC(\d+)", parent_folder)
         if match:
-            album_name = os.path.basename(os.path.dirname(parent_folder))
+            # If the parent folder contains "DISC", use the grandparent folder name
+            grandparent_folder = os.path.dirname(parent_folder)
+            album_name = os.path.basename(grandparent_folder)
         else:
+            # If the parent folder doesn't contain "DISC", use the parent folder name
             album_name = os.path.basename(parent_folder)
+
+        # If the album name contains " - ", assume it follows the convention of "<artist> - <album>"
+        if " - " in album_name:
+            album_name = album_name.split(" - ")[-1]
+
         return album_name
 
     def get_disc_info(self):
