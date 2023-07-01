@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "maroon"
+version = "0.1.0"
+description = "Maroon manages your music for Roon"
+authors = ["yada <trojblue@gmail.com>"]
+license = "GPL-3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.3"
+
+[tool.poetry.scripts]
+unibox = 'maroon.cli:cli'
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
