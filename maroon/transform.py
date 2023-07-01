@@ -1,66 +1,105 @@
-def parse_cue(filename):
-    with open(filename, 'r') as file:
-        lines = file.readlines()
+import os
+import re
+import tinytag
+from collections import namedtuple
+from pydub import AudioSegment
+from mutagen.flac import FLAC
+from tqdm.auto import tqdm
+
+Track = namedtuple('Track', ['number', 'title', 'performer', 'start_time'])
+
+
+def parse_cue(cue_path):
+    with open(cue_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
 
     tracks = []
-    track_data = {}
+    current_track = None
 
     for line in lines:
-        if "TRACK" in line:
-            if track_data:
-                # Append previous track data
-                tracks.append(track_data)
-                track_data = {}
-        elif "INDEX 01" in line:
-            # Extract minutes, seconds and frames
-            time_parts = line.split('INDEX 01 ')[-1].split(':')
-            track_data['minutes'] = int(time_parts[0])
-            track_data['seconds'] = int(time_parts[1])
-            track_data['frames'] = int(time_parts[2])
+        if line.startswith('  TRACK'):
+            if current_track:
+                tracks.append(current_track)
+            track_number = int(line.split()[1])
+            current_track = Track(number=track_number, title=None, performer=None, start_time=None)
 
-    if track_data:
-        # Append last track data
-        tracks.append(track_data)
+        elif line.startswith('    TITLE'):
+            current_track = current_track._replace(title=line.split('"')[1])
+
+        elif line.startswith('    PERFORMER'):
+            current_track = current_track._replace(performer=line.split('"')[1])
+
+        elif line.startswith('    INDEX'):
+            time_str = line.split()[2]
+            mins, secs, frames = map(int, time_str.split(':'))
+            start_time = (mins * 60 + secs + frames / 75) * 1000  # Convert to milliseconds
+            current_track = current_track._replace(start_time=int(start_time))
+
+    if current_track:
+        tracks.append(current_track)
 
     return tracks
 
 
-import os
-from pydub import AudioSegment
-from pydsmid.cuesheet import Cuesheet
+def get_disc_info(cue_path):
+    parent_folder = os.path.dirname(cue_path)
+    disc_number = 1
+    total_discs = 1
+    match = re.search('DISC(\d+)', parent_folder)
+    if match:
+        disc_number = int(match.group(1))
+        total_discs = len([folder for folder in os.listdir(os.path.dirname(parent_folder)) if 'DISC' in folder])
+    return disc_number, total_discs
 
 
-def split_wav_from_cue(directory, cue_filename):
-    cue_path = os.path.join(directory, cue_filename)
-
-    # Load cue sheet
-    cue = Cuesheet(cue_path)
-    cue.parse()
-
-    # Load wav file
-    wav_filename = cue_filename.replace('.cue', '.wav')
-    wav_path = os.path.join(directory, wav_filename)
+def split_wav_from_cue(cue_path):
+    tracks = parse_cue(cue_path)
+    wav_path = cue_path.replace('.cue', '.wav')
     wav = AudioSegment.from_wav(wav_path)
 
-    # Create output directory if it doesn't exist
-    output_dir = os.path.join(directory, "split_files")
-    os.makedirs(output_dir, exist_ok=True)
+    # Getting metadata from original file
+    original_metadata = tinytag.TinyTag.get(wav_path)
 
-    for i, track in enumerate(cue.tracks, start=1):
-        # Calculate start and end times in milliseconds
-        start_time = int(track.index[1].time.min * 60 * 1000
-                         + track.index[1].time.sec * 1000
-                         + track.index[1].time.frame * 1000 / 75)
-        end_time = len(wav) if i == len(cue.tracks) else int(cue.tracks[i].index[1].time.min * 60 * 1000
-                                                             + cue.tracks[i].index[1].time.sec * 1000
-                                                             + cue.tracks[i].index[1].time.frame * 1000 / 75)
+    # Getting disc info
+    disc_number, total_discs = get_disc_info(cue_path)
 
-        # Extract part of wav file
-        track_wav = wav[start_time:end_time]
+    for track in tqdm(tracks):
+        end_time = len(wav) if track == tracks[-1] else tracks[tracks.index(track) + 1].start_time
+        track_wav = wav[track.start_time:end_time]
 
-        # Save track wav file
-        output_filename = f'{track.performer} - {track.title}.wav'
-        output_path = os.path.join(output_dir, output_filename)
-        track_wav.export(output_path, format="wav")
+        output_filename = f'{str(track.number).zfill(2)}_{track.title}.flac'
+        output_filepath = os.path.join(os.path.dirname(cue_path), output_filename)
+        track_wav.export(output_filepath, format='flac')
 
-    print(f'Split {len(cue.tracks)} tracks.')
+        # Writing metadata to the new file
+        flac = FLAC(output_filepath)
+
+        # Assigning title and artist from cue
+        if track.title:
+            flac["title"] = track.title
+        if track.performer:
+            flac["artist"] = track.performer
+
+        # Assigning other metadata from original file
+        metadata_keys = [attr for attr in dir(original_metadata) if
+                         not attr.startswith('__') and not callable(getattr(original_metadata, attr))]
+        for key in metadata_keys:
+            value = getattr(original_metadata, key)
+            if value:
+                flac[key] = str(value)
+
+        # Assigning track number and total track number
+        flac['tracknumber'] = str(track.number)
+        flac['tracktotal'] = str(len(tracks))
+
+        # Assigning disc number and total disc number
+        flac['discnumber'] = str(disc_number)
+        flac['disctotal'] = str(total_discs)
+
+        flac.save()
+
+    print(f'Split {len(tracks)} tracks.')
+
+
+if __name__ == '__main__':
+    split_wav_from_cue(r'X:\0音乐\VSinger\音楽的同位体 星界 1st COMPILATION ALBUM メタファー\DISC1\星界 - 詩想のメタファー.cue')
