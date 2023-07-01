@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maroon"
-version = "0.1.43"
+version = "0.1.44"
 description = "Maroon is a package that manages music for Roon"
 authors = ["yada <trojblue@gmail.com>"]
 license = "GPL-3.0"

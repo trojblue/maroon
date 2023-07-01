@@ -131,6 +131,13 @@ class PostProcess:
     def done(self):
         print(f"Split {len(self.meta.tracks)} tracks.")
 
+def transform_folder(cue_path: str):
+    meta = Meta(cue_path)
+    transform = Transform(meta)
+    transform.process()
+    post_process = PostProcess(meta, transform)
+    post_process.done()
+
 
 if __name__ == "__main__":
     cue_path = r"D:\Andrew\Downloads\tmp\存流 - ARU\存流 - ARU.cue"

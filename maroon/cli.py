@@ -1,7 +1,7 @@
 import os
 import click
 from .rename import rename_music_folder
-from .transform import split_wav_from_cue
+from .transform import transform_folder
 
 
 @click.group()
@@ -12,14 +12,14 @@ def cli():
 def process_directory(directory: str) -> None:
     """Process a directory recursively, formatting music folders and splitting .wav files from .cue sheets"""
     for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".cue"):
-                cue_path = os.path.join(root, file)
-                split_wav_from_cue(cue_path)
-
         for dir in dirs:
             if "DISC" in dir:
                 rename_music_folder(os.path.join(root, dir))
+
+        for file in files:
+            if file.endswith(".cue"):
+                cue_path = os.path.join(root, file)
+                transform_folder(cue_path)
 
 
 @cli.command()
