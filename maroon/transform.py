@@ -8,7 +8,7 @@ from maroon.cue import parse_cue, Track
 
 
 class Meta:
-    def __init__(self, cue_path):
+    def __init__(self, cue_path: str):
         self.cue_path = cue_path
         self.tracks = parse_cue(self.cue_path)
         self.wav_path = self.cue_path.replace(".cue", ".wav")
@@ -39,39 +39,49 @@ class Meta:
         disc_number = 1
         total_discs = 1
         match = re.search("DISC(\d+)", parent_folder)
+
         if match:
             disc_number = int(match.group(1))
-            total_discs = len(
-                [
-                    folder
-                    for folder in os.listdir(os.path.dirname(parent_folder))
-                    if "DISC" in folder
-                ]
-            )
+            total_discs = 0
+            for folder in os.listdir(os.path.dirname(parent_folder)):
+                if "DISC" in folder:
+                    total_discs += 1
+
         return disc_number, total_discs
+
+    def get_metadata_dict(self, track: Track):
+        return {
+            "tracknumber": str(track.number),
+            "tracktotal": str(len(self.tracks)),
+            "discnumber": str(self.disc_number),
+            "disctotal": str(self.total_discs),
+            "album": self.album_name,
+            "genre": self.genre,
+        }
 
 
 class Transform:
-    def __init__(self, meta):
+    def __init__(self, meta: Meta):
         self.meta = meta
+        self.wav = AudioSegment.from_wav(self.meta.wav_path)
         self.split_tracks = self.split_wav()
 
+    def get_end_time(self, index: int):
+        if index == len(self.meta.tracks) - 1:
+            return len(self.wav)
+        else:
+            return self.meta.tracks[index + 1].start_time
+
     def split_wav(self):
-        wav = AudioSegment.from_wav(self.meta.wav_path)
-
         split_tracks = []
-        for track in self.meta.tracks:
-            end_time = (
-                len(wav)
-                if track == self.meta.tracks[-1]
-                else self.meta.tracks[self.meta.tracks.index(track) + 1].start_time
-            )
-            track_wav = wav[track.start_time: end_time]
+        for i in range(len(self.meta.tracks)):
+            track = self.meta.tracks[i]
+            end_time = self.get_end_time(i)
+            track_wav = self.wav[track.start_time: end_time]
             split_tracks.append((track, track_wav))
-
         return split_tracks
 
-    def write_metadata_and_export(self, track, track_wav):
+    def write_metadata_and_export(self, track: Track, track_wav: AudioSegment):
         output_filename = f"{str(track.number).zfill(2)}_{track.title}.flac"
         output_filepath = os.path.join(os.path.dirname(self.meta.cue_path), output_filename)
         track_wav.export(output_filepath, format="flac")
@@ -81,25 +91,18 @@ class Transform:
         flac["artist"] = track.performer if track.performer else ""
 
         # Transfer original metadata to new FLAC file
-        metadata_keys = [
-            attr
-            for attr in dir(self.meta.original_metadata)
-            if not attr.startswith("__") and not callable(getattr(self.meta.original_metadata, attr))
-        ]
+        metadata_keys = []
+        for attr in dir(self.meta.original_metadata):
+            if not attr.startswith("__") and not callable(getattr(self.meta.original_metadata, attr)):
+                metadata_keys.append(attr)
+
         for key in metadata_keys:
             value = getattr(self.meta.original_metadata, key)
             if value:
                 flac[key] = str(value)
 
         # Add new metadata
-        flac_metadata = {
-            "tracknumber": str(track.number),
-            "tracktotal": str(len(self.meta.tracks)),
-            "discnumber": str(self.meta.disc_number),
-            "disctotal": str(self.meta.total_discs),
-            "album": self.meta.album_name,
-            "genre": self.meta.genre,
-        }
+        flac_metadata = self.meta.get_metadata_dict(track)
 
         for key, value in flac_metadata.items():
             flac[key] = value
@@ -113,7 +116,7 @@ class Transform:
 
 
 class PostProcess:
-    def __init__(self, meta, transform):
+    def __init__(self, meta: Meta, transform: Transform):
         self.meta = meta
         self.transform = transform
 
