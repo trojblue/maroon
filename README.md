@@ -17,7 +17,7 @@ build from source:
 ```bash
 git clone https://github.com/trojblue/maroon
 cd maroon
-poe install
+poetry install
 poetry build
 pip install dist/<build_version>.whl
 ```

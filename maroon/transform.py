@@ -15,7 +15,13 @@ def get_original_metadata(wav_path: str):
     return original_metadata
 
 
-def split_wav(wav_path: str, tracks):
+def split_wav(wav_path: str, tracks: list[Track]) -> list[tuple[Track, AudioSegment]]:
+    """
+    Splits a WAV file into multiple tracks, according to <tracks> read from possibly a cue sheet.
+    :param wav_path: something.wav
+    :param tracks: cue sheet tracks (see maroon.cue.parse_cue)
+    :return: pairs of (track_info, track_wav)
+    """
     wav = AudioSegment.from_wav(wav_path)
 
     split_tracks = []
@@ -66,7 +72,12 @@ def write_metadata_and_export(
     flac.save()
 
 
-def get_disc_info(cue_path: str):
+def get_disc_info(cue_path: str) -> tuple[int, int]:
+    """
+    inputs a cue path and returns the disc number and total discs
+    :param cue_path:  "something.cue"
+    :return: (disc_number, total_discs): int, int
+    """
     parent_folder = os.path.dirname(cue_path)
     disc_number = 1
     total_discs = 1
@@ -83,9 +94,9 @@ def get_disc_info(cue_path: str):
     return disc_number, total_discs
 
 
-def split_wav_from_cue(cue_path: str):
+def split_wav_from_cue(cue_path: str) -> None:
     """
-    :param cue_path: file path for the cue file; "something.cue"
+    :param cue_path: "something.cue"
     :return:
     """
     tracks = parse_cue(cue_path)

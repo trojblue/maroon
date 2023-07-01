@@ -7,7 +7,7 @@ from collections import namedtuple
 Track = namedtuple("Track", ["number", "title", "performer", "start_time"])
 
 
-def parse_cue(cue_path):
+def parse_cue(cue_path) -> list[Track]:
     with open(cue_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
