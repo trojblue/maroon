@@ -25,7 +25,42 @@ files = [
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 
+[[package]]
+name = "mutagen"
+version = "1.46.0"
+description = "read and write audio tags for many formats"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mutagen-1.46.0-py3-none-any.whl", hash = "sha256:8af0728aa2d5c3ee5a727e28d0627966641fddfe804c23eabb5926a4d770aed5"},
+    {file = "mutagen-1.46.0.tar.gz", hash = "sha256:6e5f8ba84836b99fe60be5fb27f84be4ad919bbb6b49caa6ae81e70584b55e58"},
+]
+
+[[package]]
+name = "pydub"
+version = "0.25.1"
+description = "Manipulate audio with an simple and easy high level interface"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6"},
+    {file = "pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f"},
+]
+
+[[package]]
+name = "tinytag"
+version = "1.9.0"
+description = "Read music meta data and length of MP3, OGG, OPUS, MP4, M4A, FLAC, WMA and Wave files"
+optional = false
+python-versions = ">=2.7"
+files = [
+    {file = "tinytag-1.9.0.tar.gz", hash = "sha256:f8d71110e1e680a33d99202e00a5a698481d25d20173b81ba3e863423979e014"},
+]
+
+[package.extras]
+tests = ["flake8", "pytest", "pytest-cov"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "70b32ec6081d9a1b1fa9bcf40a3eb0f386db9a8d80a7bfbbe29a47ac428e0fbd"
+content-hash = "18af0c86682f0f124e4e6b117524ad954c20a5229e1bb5a695597ee60d05016c"

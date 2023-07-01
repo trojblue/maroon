@@ -1,5 +1,5 @@
 import click
-from .do_format import format_music_folder
+from .format import format_music_folder
 
 @click.command()
 @click.argument('dir_name')
