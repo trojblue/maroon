@@ -15,6 +15,21 @@ def get_original_metadata(wav_path: str):
     return original_metadata
 
 
+def get_album_name(cue_path: str) -> str:
+    """
+    inputs a cue path and returns the default album name
+    :param cue_path:  "something.cue"
+    :return: album_name: str
+    """
+    parent_folder = os.path.dirname(cue_path)
+    match = re.search("DISC(\d+)", parent_folder)
+    if match:
+        album_name = os.path.basename(os.path.dirname(parent_folder))
+    else:
+        album_name = os.path.basename(parent_folder)
+
+    return album_name
+
 def split_wav(wav_path: str, tracks: list[Track]) -> list[tuple[Track, AudioSegment]]:
     """
     Splits a WAV file into multiple tracks, according to <tracks> read from possibly a cue sheet.
@@ -45,6 +60,8 @@ def write_metadata_and_export(
     total_tracks: int,
     disc_number: int,
     total_discs: int,
+    album_name: str,
+    genre: str,
 ) -> None:
     track_wav.export(output_filepath, format="flac")
 
@@ -68,6 +85,9 @@ def write_metadata_and_export(
 
     flac["discnumber"] = str(disc_number)
     flac["disctotal"] = str(total_discs)
+
+    flac["album"] = album_name
+    flac["genre"] = genre
 
     flac.save()
 
@@ -93,7 +113,6 @@ def get_disc_info(cue_path: str) -> tuple[int, int]:
         )
     return disc_number, total_discs
 
-
 def split_wav_from_cue(cue_path: str) -> None:
     """
     :param cue_path: "something.cue"
@@ -104,6 +123,15 @@ def split_wav_from_cue(cue_path: str) -> None:
     split_tracks = split_wav(cue_path.replace(".cue", ".wav"), tracks)
 
     disc_number, total_discs = get_disc_info(cue_path)
+
+    if not original_metadata.album:
+        default_album_name = get_album_name(cue_path)
+        album_name = input(f"Enter the album name (default: {default_album_name}): ")
+        album_name = album_name.strip() if album_name else default_album_name
+    else:
+        album_name = original_metadata.album
+
+    genre = input("Enter the genre of the album: ")
 
     pbar = tqdm(
         split_tracks, desc=f"Splitting {os.path.basename(cue_path).replace('.cue', '')}"
@@ -121,6 +149,8 @@ def split_wav_from_cue(cue_path: str) -> None:
             len(tracks),
             disc_number,
             total_discs,
+            album_name,
+            genre,
         )
 
     # print(f'Split {len(tracks)} tracks.')
@@ -128,5 +158,6 @@ def split_wav_from_cue(cue_path: str) -> None:
 
 if __name__ == "__main__":
     split_wav_from_cue(
-        r"X:\0音乐\VSinger\音楽的同位体 星界 1st COMPILATION ALBUM メタファー\DISC1\星界 - 詩想のメタファー.cue"
+        # r"X:\0音乐\VSinger\音楽的同位体 星界 1st COMPILATION ALBUM メタファー\DISC1\星界 - 詩想のメタファー.cue"
+        r"D:\Andrew\Downloads\tmp\存流 - ARU\存流 - ARU.cue"
     )
