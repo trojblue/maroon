@@ -140,7 +140,7 @@ def transform_folder(cue_path: str):
 
 
 if __name__ == "__main__":
-    cue_path = r"D:\Andrew\Downloads\tmp\存流 - ARU\存流 - ARU.cue"
+    cue_path = r"X:\0音乐\Chinese\交工乐队 - 菊花夜行军\i\CDImage.cue"
     meta = Meta(cue_path)
     transform = Transform(meta)
     transform.process()
