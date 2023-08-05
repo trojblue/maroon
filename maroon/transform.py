@@ -6,15 +6,31 @@ from tqdm.auto import tqdm
 from mutagen.flac import FLAC
 from maroon.cue import parse_cue, Track
 
+from mutagen import File
 
 class Meta:
     def __init__(self, cue_path: str):
         self.cue_path = cue_path
         self.tracks = parse_cue(self.cue_path)
-        self.wav_path = self.cue_path.replace(".cue", ".wav")
-        self.original_metadata = TinyTag.get(self.wav_path)
+        self.audio_file_path = self.get_audio_file_path()
+        self.original_metadata = self.get_original_metadata()
         self.album_name, self.genre = self.get_album_name_and_genre()
         self.disc_number, self.total_discs = self.get_disc_info()
+
+    def get_audio_file_path(self):
+        # Check for APE file first
+        ape_path = self.cue_path.replace(".cue", ".ape")
+        if os.path.exists(ape_path):
+            return ape_path
+        # Fallback to WAV file
+        return self.cue_path.replace(".cue", ".wav")
+
+    def get_original_metadata(self):
+        try:
+            return File(self.audio_file_path)
+        except Exception as e:
+            print(f"An error occurred while reading metadata from {self.audio_file_path}: {e}")
+            return None
 
     def get_album_name_and_genre(self):
         default_album_name = self.get_default_album_name()
@@ -68,25 +84,42 @@ class Meta:
         }
 
 
+
 class Transform:
     def __init__(self, meta: Meta):
         self.meta = meta
-        self.wav = AudioSegment.from_wav(self.meta.wav_path)
-        self.split_tracks = self.split_wav()
+        self.audio_file_path = self.get_audio_file_path()
+        self.audio_file = self.load_audio_file()
+        self.split_tracks = self.split_audio_file()
+
+    def get_audio_file_path(self):
+        # Check for APE file first
+        ape_path = self.meta.cue_path.replace(".cue", ".ape")
+        if os.path.exists(ape_path):
+            return ape_path
+        # Fallback to WAV file
+        return self.meta.cue_path.replace(".cue", ".wav")
+
+    def load_audio_file(self):
+        # Load APE file if it exists
+        if self.audio_file_path.endswith(".ape"):
+            return AudioSegment.from_file(self.audio_file_path, format="ape")
+        # Fallback to WAV file
+        return AudioSegment.from_wav(self.audio_file_path)
 
     def get_end_time(self, index: int):
         if index == len(self.meta.tracks) - 1:
-            return len(self.wav)
+            return len(self.audio_file)
         else:
             return self.meta.tracks[index + 1].start_time
 
-    def split_wav(self):
+    def split_audio_file(self):
         split_tracks = []
         for i in range(len(self.meta.tracks)):
             track = self.meta.tracks[i]
             end_time = self.get_end_time(i)
-            track_wav = self.wav[track.start_time: end_time]
-            split_tracks.append((track, track_wav))
+            track_audio = self.audio_file[track.start_time: end_time]
+            split_tracks.append((track, track_audio))
         return split_tracks
 
     def write_metadata_and_export(self, track: Track, track_wav: AudioSegment):
@@ -140,7 +173,7 @@ def transform_folder(cue_path: str):
 
 
 if __name__ == "__main__":
-    cue_path = r"X:\0音乐\Chinese\交工乐队 - 菊花夜行军\i\CDImage.cue"
+    cue_path = r"X:\Downloads\百度网盘音乐\美好药店《请给我放大一张表妹的照片》APE\美好药店 - 请给我放大一张表妹的照片.cue"
     meta = Meta(cue_path)
     transform = Transform(meta)
     transform.process()
